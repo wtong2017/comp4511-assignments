@@ -33,7 +33,7 @@ char* getUpTime() {
   min = min % 60;
   day = hour / 24;
   hour = hour % 24;
-  snprintf(upTimeStr, 16, "%02d:%02dH:%02dM:%02dS", day, hour, min, sec);
+  snprintf(upTimeStr, 16, "%02dD:%02dH:%02dM:%02dS", day, hour, min, sec);
   return upTimeStr;
 }
 
