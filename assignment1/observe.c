@@ -1,5 +1,23 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+
+int getProcesser(char** array) {
+  int i = 0;
+  FILE *fin = fopen("/proc/cpuinfo", "r");
+  char line[256];
+  while (fgets(line, sizeof line, fin) != NULL) /* read a line */
+  {
+    if (strncmp(line, "model name", 10) == 0) {
+      //printf("%s", line);
+      array[i] = malloc(256);
+      strcpy(array[i], line+13);
+      i++;
+    }
+  }
+  fclose(fin);
+  return i;
+}
 
 char* getVersion() {
   char tempStr[100];
@@ -39,7 +57,12 @@ char* getUpTime() {
 
 void usage1() {
   printf("---Processer Type---\n");
-  
+  char** processers = malloc(128); // Assume the maximun processors in a computer is 128
+  int num = getProcesser(processers);
+  int i;
+  for (i = 0; i < num; i++) {
+    printf("Processor-%d: %s", i, processers[i]);
+  } 
   printf("---Kernel Version---\n");
   printf("Linux version %s\n",getVersion());
   printf("---Amount of Memory---\n");
