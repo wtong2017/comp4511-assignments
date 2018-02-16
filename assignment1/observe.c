@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pwd.h>
+#include <sys/types.h>
+#include <dirent.h>
 
 int getProcesser(char** array) {
   int i = 0;
@@ -9,7 +12,6 @@ int getProcesser(char** array) {
   while (fgets(line, sizeof line, fin) != NULL) /* read a line */
   {
     if (strncmp(line, "model name", 10) == 0) {
-      //printf("%s", line);
       array[i] = malloc(256);
       strcpy(array[i], line+13);
       i++;
@@ -55,6 +57,41 @@ char* getUpTime() {
   return upTimeStr;
 }
 
+void printProcessesByUid(const int uid) {
+  DIR *dir = opendir("/proc");
+  struct dirent *dent;
+  while (dent = readdir(dir)) {
+    if (atoi(dent->d_name)) {
+      char dest[256];
+      strcpy(dest, "/proc/");
+      strcat(dest, dent->d_name);
+      strcat(dest, "/status");
+      FILE *fin = fopen(dest, "r");
+      char line[256];
+      char name[256];
+      int _uid = -1;
+      while (fgets(line, sizeof line, fin) != NULL) /* read a line */
+      {
+        if (strncmp(line, "Name", 4) == 0) {
+          strcpy(name, line+6);
+        }
+        else if (strncmp(line, "Uid", 3) == 0) {
+          char temp[256];
+          int real, effective, saved_set, file_system_uids;
+          sscanf(line, "%s %d %d %d %d", temp, &real, &effective, &saved_set, &file_system_uids);
+          if (real == uid) {
+            _uid = real;
+          }
+        }
+      }
+      fclose(fin);
+      if (_uid != -1) {
+        printf("%s: %s", dent->d_name, name); // name will contain a newline notation
+      }
+    }
+  }
+}
+
 void usage1() {
   printf("---Processer Type---\n");
   char** processers = malloc(128); // Assume the maximun processors in a computer is 128
@@ -72,7 +109,14 @@ void usage1() {
 }
 
 void usage2(char* str) {
-  printf("Usage2 + %s\n", str);
+  struct passwd *user;
+  user = getpwnam(str);
+  if (user == NULL) {
+    printf("Invalid username: %s\n", str);
+  }
+  else {
+    printProcessesByUid(user->pw_uid);
+  }
 }
 
 int main(int argc, char *argv[]) {
