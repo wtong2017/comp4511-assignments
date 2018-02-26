@@ -12,7 +12,7 @@
 void show_prompt();
 int get_cmd_line(char *cmdline);
 void process_cmd(char *cmdline);
-
+void child_command();
 
 /* The main function implementation */
 int main()
@@ -42,26 +42,29 @@ void process_cmd(char *cmdline)
 	char str[MAX_CMDLINE_LEN];	
 	int success = sscanf(cmdline, "%s %i", str, &time);
 	if (success != 2 || strncmp(str, "child", 5) != 0) {
-		printf("Invalid commend");
+		printf("Invalid command");
 		return;
 	}
-	
-	int child_status;
-	pid_t pid = fork();
-	if (pid == 0) { // Child
-		printf("child pid %d is started\n", getpid());
-		sleep(time);
-		exit(0);
+	else {
+		child_command(time);
 	}
-	// Parent
-	pid_t child_pid = wait(&child_status);
-	printf("child pid %d is terminated with status %i\n", child_pid, child_status);
 }
 
 
 void show_prompt() 
 {
-	printf("myshell> ");
+	char cwd[1024];
+        char dir[256];
+	int i;
+	getcwd(cwd, sizeof(cwd));
+	int len = strlen(cwd);
+	for (i = len-1; i >= 0; --i) {
+		if (cwd[i] == '/') {
+			break;
+		}
+	}
+	strcpy(dir, cwd + i + 1);
+	printf("[%s] myshell> ", dir);
 }
 
 int get_cmd_line(char *cmdline) 
@@ -84,4 +87,17 @@ int get_cmd_line(char *cmdline)
         return -1;
     }
     return 0;
+}
+
+void child_command(int time) {
+	int child_status;
+	pid_t pid = fork();
+	if (pid == 0) { // Child
+		printf("child pid %d is started\n", getpid());
+		sleep(time);
+		exit(0);
+	}
+	// Parent
+	pid_t child_pid = wait(&child_status);
+	printf("child pid %d is terminated with status %i\n", child_pid, child_status);
 }
