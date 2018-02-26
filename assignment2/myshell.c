@@ -12,6 +12,8 @@ void show_prompt();
 int get_cmd_line(char *cmdline);
 void process_cmd(char *cmdline);
 int tokenize_cmd_line(char tokens[MAX_CMDLINE_LEN][MAX_CMDLINE_LEN], char *cmdline);
+void run_program(const char *filename, char *const argv[], char *const envp[]);
+void my_cd(char *path);
 void child_command();
 
 /* The main function implementation */
@@ -44,6 +46,14 @@ void process_cmd(char *cmdline)
 			child_command(atoi(tokens[1]));
 			return;
 		}
+	}
+	if (token_num == 1 && strncmp(tokens[0], "cd", 2) == 0) {
+		my_cd(NULL);
+		return;
+	}
+	if (token_num == 2 && strncmp(tokens[0], "cd", 2) == 0) {
+		my_cd(tokens[1]);
+		return;
 	}
 	printf("Invalid command\n");
 }
@@ -94,7 +104,22 @@ int tokenize_cmd_line(char tokens[MAX_CMDLINE_LEN][MAX_CMDLINE_LEN], char *cmdli
 		strcpy(tokens[count], token);
 		count += 1;
 	}
+	//tokens[count] = NULL;
  	return count;
+}
+
+void run_program(const char *filename, char *const argv[], char *const envp[]) {
+
+}
+
+void my_cd(char *path) {
+	if (!path) {
+		path = getenv("HOME");	
+	}
+	// printf("Path: %s\n", path);	
+	if (chdir(path) == -1) {
+		printf("Encounter errors\n");
+	}
 }
 
 void child_command(int time) {
