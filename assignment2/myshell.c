@@ -8,10 +8,10 @@
 #define MAX_CMDLINE_LEN 256
 
 /* function prototypes go here... */
-
 void show_prompt();
 int get_cmd_line(char *cmdline);
 void process_cmd(char *cmdline);
+int tokenize_cmd_line(char tokens[MAX_CMDLINE_LEN][MAX_CMDLINE_LEN], char *cmdline);
 void child_command();
 
 /* The main function implementation */
@@ -30,26 +30,23 @@ int main()
 	return 0;
 }
 
-
 void process_cmd(char *cmdline)
 {
 	// printf("%s\n", cmdline);
-	if (strlen(cmdline) == 4 && strcmp(cmdline, "exit") == 0) {
+	char tokens[MAX_CMDLINE_LEN][MAX_CMDLINE_LEN];
+	int token_num = tokenize_cmd_line(tokens, cmdline);
+	if (token_num == 1 && strncmp(tokens[0], "exit", 4) == 0) {
 		printf("myshell is terminated with pid %i\n", getpid());
 		exit(0);
 	}
-	int time;
-	char str[MAX_CMDLINE_LEN];	
-	int success = sscanf(cmdline, "%s %i", str, &time);
-	if (success != 2 || strncmp(str, "child", 5) != 0) {
-		printf("Invalid command");
-		return;
+	if (token_num == 2 && strncmp(tokens[0], "child", 5) == 0) {
+		if (str_to_int(tokens[1]) == 1) {
+			child_command(atoi(tokens[1]));
+			return;
+		}
 	}
-	else {
-		child_command(time);
-	}
+	printf("Invalid command\n");
 }
-
 
 void show_prompt() 
 {
@@ -89,6 +86,17 @@ int get_cmd_line(char *cmdline)
     return 0;
 }
 
+int tokenize_cmd_line(char tokens[MAX_CMDLINE_LEN][MAX_CMDLINE_LEN], char *cmdline) {
+	int count = 0;
+	int i, l;
+	char token[MAX_CMDLINE_LEN];
+	for (i = 0; 1 == sscanf(cmdline + i, "%s%n", token, &l); i = i + l) {
+		strcpy(tokens[count], token);
+		count += 1;
+	}
+ 	return count;
+}
+
 void child_command(int time) {
 	int child_status;
 	pid_t pid = fork();
@@ -100,4 +108,14 @@ void child_command(int time) {
 	// Parent
 	pid_t child_pid = wait(&child_status);
 	printf("child pid %d is terminated with status %i\n", child_pid, child_status);
+}
+
+int str_to_int(char *str) {
+	while (*str) {
+		if (isdigit(*str) == 0) {
+			return 0;
+		}
+   		str++;
+	}
+	return 1;
 }
