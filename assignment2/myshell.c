@@ -136,8 +136,9 @@ void run_program(const char *filename, char *const argv[], char *const envp[]) {
 				strcat(path_buffer, filename);
 				//printf("%s\n", path_buffer);
 				if (-1 == (execve(path_buffer, argv, NULL)) && i == path_num-1) {
-					perror("execve");  
-        				exit(-1);
+					printf("%s: Command not found.\n", filename);
+					//perror("execve");  
+        				exit(1);
 				}
 			}
     		}
@@ -154,7 +155,7 @@ void my_cd(char *path) {
 	//printf("Path: %s\n", path);	
 	if (chdir(path) == -1) {
 		perror("chdir");
-		//exit(-1);
+		//exit(1);
 	}
 }
 
