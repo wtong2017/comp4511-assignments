@@ -5,24 +5,29 @@
 #include <unistd.h>
 #include <sys/types.h>
 
+#include <signal.h>
+
 #define MAX_CMDLINE_LEN 256
 #define MAX_PROGRAM_PATH 128
 
 /* function prototypes go here... */
+void handler(int signum);
 void show_prompt();
 int get_cmd_line(char *cmdline);
 void process_cmd(char *cmdline);
 int tokenize_cmd_line(char *tokens[MAX_CMDLINE_LEN], char *cmdline);
 int get_program_path(char *paths[MAX_PROGRAM_PATH]);
-void run_program(const char *filename, char *const argv[], char *const envp[]);
+void run_program(const char *filename, char *argv[], char *const envp[], int last);
 void my_cd(char *path);
-void child_command();
+//void child_command();
 
 /* The main function implementation */
 int main()
 {
 	char cmdline[MAX_CMDLINE_LEN];
 	
+	signal(SIGCHLD, handler);
+
 	while (1) 
 	{
 		show_prompt();
@@ -45,12 +50,12 @@ void process_cmd(char *cmdline)
 		exit(0);
 	}
 	// Child cmd from lab
-	if (token_num == 2 && strncmp(tokens[0], "child", 5) == 0) {
-		if (str_to_int(tokens[1]) == 1) {
-			child_command(atoi(tokens[1]));
-			return;
-		}
-	}
+	//if (token_num == 2 && strncmp(tokens[0], "child", 5) == 0) {
+	//	if (str_to_int(tokens[1]) == 1) {
+	//		child_command(atoi(tokens[1]));
+	//		return;
+	//	}
+	//}
 	//if (token_num == 1 && strncmp(tokens[0], "cd", 2) == 0) {
 	//	my_cd(NULL);
 	//	return;
@@ -61,7 +66,7 @@ void process_cmd(char *cmdline)
 		return;
 	}
 	// Other cmd
-	run_program(tokens[0], tokens, NULL);
+	run_program(tokens[0], tokens, NULL, token_num - 1);
 	//printf("Invalid command\n");
 }
 
@@ -116,13 +121,33 @@ int tokenize_cmd_line(char *tokens[MAX_CMDLINE_LEN], char *cmdline) {
  	return i;
 }
 
-void run_program(const char *filename, char *const argv[], char *const envp[]) {
+void run_program(const char *filename, char *argv[], char *const envp[], int last) {
+	int background = 0;
+	int child_command = 0;
+	if (strncmp(argv[last], "&", 1) == 0) {
+		argv[last] = NULL;
+		background = 1;
+	}
+	if (strncmp(filename, "child", 5) == 0) {
+		if (str_to_int(argv[1])) {
+			child_command = 1;
+		} 
+		else {
+			printf("Invalid argument\n");
+			return;
+		}
+	}
 	pid_t pid = fork();
 	if (pid == 0) { // Child
 		//printf(filename);
-		//if (strncmp(filename, "cd", 2) == 0) {
-		//	my_cd(argv[1]);
-		//}
+		if (background) {
+			printf("\nbackground process pid %i is started.\n", getpid());
+		}
+		if (child_command) {
+			printf("child pid %d is started\n", getpid());
+			sleep(atoi(argv[1]));
+			exit(0);
+		}
 		char *paths[MAX_PROGRAM_PATH];
 		int path_num = get_program_path(paths);
 		int i;
@@ -145,7 +170,16 @@ void run_program(const char *filename, char *const argv[], char *const envp[]) {
 		exit(0);
 	}
 	// Parent
-	wait(0);
+	if (background == 0) {
+		if (child_command) {
+			int child_status;
+			pid_t child_pid = wait(&child_status);
+			printf("child pid %d is terminated with status %i\n", child_pid, child_status);
+		}
+		else {
+			wait(0);
+		}
+	}
 }
 
 void my_cd(char *path) {
@@ -159,18 +193,18 @@ void my_cd(char *path) {
 	}
 }
 
-void child_command(int time) {
-	int child_status;
-	pid_t pid = fork();
-	if (pid == 0) { // Child
-		printf("child pid %d is started\n", getpid());
-		sleep(time);
-		exit(0);
-	}
-	// Parent
-	pid_t child_pid = wait(&child_status);
-	printf("child pid %d is terminated with status %i\n", child_pid, child_status);
-}
+//void child_command(int time) {
+//	int child_status;
+//	pid_t pid = fork();
+//	if (pid == 0) { // Child
+//		printf("child pid %d is started\n", getpid());
+//		sleep(time);
+//		exit(0);
+//	}
+//	// Parent
+//	pid_t child_pid = wait(&child_status);
+//	printf("child pid %d is terminated with status %i\n", child_pid, child_status);
+//}
 
 int str_to_int(char *str) {
 	while (*str) {
@@ -194,4 +228,15 @@ int get_program_path(char *paths[MAX_PROGRAM_PATH]) {
 		paths[i] = pch;
 	}
  	return i;
+}
+
+void handler(int signum) {
+	int child_status;
+	pid_t child_pid;
+     
+	child_pid = waitpid(-1, child_status, WNOHANG);
+	if (child_pid > 0) {
+		printf("background process pid %d is terminated with status %i\n", child_pid, child_status);
+		//show_prompt();
+	}
 }
