@@ -147,9 +147,9 @@ void run_program(const char *filename, char *argv[], char *const envp[], int las
 	pid_t pid = fork();
 	if (pid == 0) { // Child
 		//printf(filename);
-		if (background) {
-			printf("\nbackground process pid %i is started.\n", getpid());
-		}
+		//if (background) {
+		//	printf("\nbackground process pid %i is started.\n", getpid());
+		//}
 		if (child_command) {
 			printf("child pid %d is started\n", getpid());
 			sleep(atoi(argv[1]));
@@ -242,10 +242,10 @@ void handler(int signum) {
 	pid_t child_pid;
      
 	child_pid = waitpid(-1, child_status, WNOHANG);
-	if (child_pid > 0) {
-		printf("\nbackground process pid %d is terminated with status %i\n", child_pid, child_status);
+	//if (child_pid > 0) {
+	//	printf("\nbackground process pid %d is terminated with status %i\n", child_pid, child_status);
 		//show_prompt();
-	}
+	//}
 }
 
 int find_pipe(char *tokens[MAX_CMDLINE_LEN]) {
