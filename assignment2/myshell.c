@@ -19,6 +19,8 @@ int tokenize_cmd_line(char *tokens[MAX_CMDLINE_LEN], char *cmdline);
 int get_program_path(char *paths[MAX_PROGRAM_PATH]);
 void run_program(const char *filename, char *argv[], char *const envp[], int last);
 void my_cd(char *path);
+void my_pipe(char *tokens[MAX_CMDLINE_LEN], int pos);
+int find_pipe(char *tokens[MAX_CMDLINE_LEN]);
 //void child_command();
 
 /* The main function implementation */
@@ -124,6 +126,11 @@ int tokenize_cmd_line(char *tokens[MAX_CMDLINE_LEN], char *cmdline) {
 void run_program(const char *filename, char *argv[], char *const envp[], int last) {
 	int background = 0;
 	int child_command = 0;
+	int pipe_pos = find_pipe(argv);
+	if (pipe_pos != -1) {
+		my_pipe(argv, pipe_pos);
+		return;
+	}
 	if (strncmp(argv[last], "&", 1) == 0) {
 		argv[last] = NULL;
 		background = 1;
@@ -238,5 +245,42 @@ void handler(int signum) {
 	if (child_pid > 0) {
 		printf("\nbackground process pid %d is terminated with status %i\n", child_pid, child_status);
 		//show_prompt();
+	}
+}
+
+int find_pipe(char *tokens[MAX_CMDLINE_LEN]) {
+	int i;
+	for (i = 0; i < MAX_CMDLINE_LEN && tokens[i] != NULL; i++) {
+		if (strncmp(tokens[i], "|", 1) == 0) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+// Simple version
+void my_pipe(char *tokens[MAX_CMDLINE_LEN], int pos) {
+	pid_t pid0 = fork();
+	if (pid0 == 0) {
+		int pfds[2];
+		pipe(pfds);
+		pid_t pid = fork();
+		if (pid == 0) { /* child */
+			close(1); /* close stdout */
+			dup(pfds[1]);   /* make stdout as pipe input*/
+			close(pfds[0]); /* don't need this */
+			tokens[pos] = NULL;
+			execvp(tokens[0], tokens);
+		} 
+		else { /* The parent process */ 
+			close(0); /* close stdin */
+			dup(pfds[0]);  /* make stdin as pipe output*/
+			close(pfds[1]); /* don't need this */
+			wait(0);
+			execvp(tokens[pos+1], tokens+pos+1);
+		}
+	}
+	else {
+		wait(0);
 	}
 }
