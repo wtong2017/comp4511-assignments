@@ -236,7 +236,7 @@ void handler(int signum) {
      
 	child_pid = waitpid(-1, child_status, WNOHANG);
 	if (child_pid > 0) {
-		printf("background process pid %d is terminated with status %i\n", child_pid, child_status);
+		printf("\nbackground process pid %d is terminated with status %i\n", child_pid, child_status);
 		//show_prompt();
 	}
 }
