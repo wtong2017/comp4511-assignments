@@ -20,7 +20,7 @@ int get_program_path(char *paths[MAX_PROGRAM_PATH]);
 void run_program(const char *filename, char *argv[], char *const envp[], int last);
 void my_cd(char *path);
 void my_pipe(char *tokens[MAX_CMDLINE_LEN], int pos);
-int find_pipe(char *tokens[MAX_CMDLINE_LEN]);
+int find_pipe(char *tokens[MAX_CMDLINE_LEN], int last);
 //void child_command();
 
 /* The main function implementation */
@@ -145,7 +145,7 @@ void run_program(const char *filename, char *argv[], char *const envp[], int las
 		//if (background) {
 		//	printf("\nbackground process pid %i is started.\n", getpid());
 		//}
-		int pipe_pos = find_pipe(argv);
+		int pipe_pos = find_pipe(argv, last);
 		if (pipe_pos != -1) {
 			my_pipe(argv, pipe_pos);
 		}
@@ -249,9 +249,9 @@ void handler(int signum) {
 	//}
 }
 
-int find_pipe(char *tokens[MAX_CMDLINE_LEN]) {
+int find_pipe(char *tokens[MAX_CMDLINE_LEN], int last) {
 	int i;
-	for (i = 0; i < MAX_CMDLINE_LEN && tokens[i] != NULL; i++) {
+	for (i = last; i >= 0; i--) {
 		if (strncmp(tokens[i], "|", 1) == 0) {
 			return i;
 		}
@@ -261,6 +261,11 @@ int find_pipe(char *tokens[MAX_CMDLINE_LEN]) {
 
 // Simple version
 void my_pipe(char *tokens[MAX_CMDLINE_LEN], int pos) {
+	/* Base case */
+	if (pos == -1) {
+                execvp(tokens[0], tokens);
+	}
+
 	int pfds[2];
 	pipe(pfds);
 	pid_t pid = fork();
@@ -269,7 +274,7 @@ void my_pipe(char *tokens[MAX_CMDLINE_LEN], int pos) {
 		dup(pfds[1]);   /* make stdout as pipe input*/
 		close(pfds[0]); /* don't need this */
 		tokens[pos] = NULL;
-		execvp(tokens[0], tokens);
+		my_pipe(tokens, find_pipe(tokens, pos-1));
 	} 
 	else { /* The parent process */ 
 		close(0); /* close stdin */

@@ -9,4 +9,4 @@
 ## Assignment 3
 - [x] simple version of pipe function (lab)
 - [ ] refactor code
-- [ ] recursive version of pipe function
+- [x] recursive version of pipe function
