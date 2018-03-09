@@ -126,11 +126,6 @@ int tokenize_cmd_line(char *tokens[MAX_CMDLINE_LEN], char *cmdline) {
 void run_program(const char *filename, char *argv[], char *const envp[], int last) {
 	int background = 0;
 	int child_command = 0;
-	int pipe_pos = find_pipe(argv);
-	if (pipe_pos != -1) {
-		my_pipe(argv, pipe_pos);
-		return;
-	}
 	if (strncmp(argv[last], "&", 1) == 0) {
 		argv[last] = NULL;
 		background = 1;
@@ -150,30 +145,36 @@ void run_program(const char *filename, char *argv[], char *const envp[], int las
 		//if (background) {
 		//	printf("\nbackground process pid %i is started.\n", getpid());
 		//}
-		if (child_command) {
-			printf("child pid %d is started\n", getpid());
-			sleep(atoi(argv[1]));
-			exit(0);
+		int pipe_pos = find_pipe(argv);
+		if (pipe_pos != -1) {
+			my_pipe(argv, pipe_pos);
 		}
-		char *paths[MAX_PROGRAM_PATH];
-		int path_num = get_program_path(paths);
-		int i;
-		char path_buffer[512];
-		strcpy(path_buffer, "./"); // current directory
-		strcat(path_buffer, filename);
-		if (-1 == (execve(path_buffer, argv, NULL))) {
-			for (i = 0; i < path_num; i++) {
-				strcpy(path_buffer, paths[i]);
-				strcat(path_buffer, "/");
-				strcat(path_buffer, filename);
-				//printf("%s\n", path_buffer);
-				if (-1 == (execve(path_buffer, argv, NULL)) && i == path_num-1) {
-					printf("%s: Command not found.\n", filename);
-					//perror("execve");  
-        				exit(1);
-				}
+		else {
+			if (child_command) {
+				printf("child pid %d is started\n", getpid());
+				sleep(atoi(argv[1]));
+				exit(0);
 			}
-    		}
+			char *paths[MAX_PROGRAM_PATH];
+			int path_num = get_program_path(paths);
+			int i;
+			char path_buffer[512];
+			strcpy(path_buffer, "./"); // current directory
+			strcat(path_buffer, filename);
+			if (-1 == (execve(path_buffer, argv, NULL))) {
+				for (i = 0; i < path_num; i++) {
+					strcpy(path_buffer, paths[i]);
+					strcat(path_buffer, "/");
+					strcat(path_buffer, filename);
+					//printf("%s\n", path_buffer);
+					if (-1 == (execve(path_buffer, argv, NULL)) && i == path_num-1) {
+						printf("%s: Command not found.\n", filename);
+						//perror("execve");  
+        					exit(1);
+					}
+				}
+    			}
+		}
 		exit(0);
 	}
 	// Parent
@@ -260,27 +261,21 @@ int find_pipe(char *tokens[MAX_CMDLINE_LEN]) {
 
 // Simple version
 void my_pipe(char *tokens[MAX_CMDLINE_LEN], int pos) {
-	pid_t pid0 = fork();
-	if (pid0 == 0) {
-		int pfds[2];
-		pipe(pfds);
-		pid_t pid = fork();
-		if (pid == 0) { /* child */
-			close(1); /* close stdout */
-			dup(pfds[1]);   /* make stdout as pipe input*/
-			close(pfds[0]); /* don't need this */
-			tokens[pos] = NULL;
-			execvp(tokens[0], tokens);
-		} 
-		else { /* The parent process */ 
-			close(0); /* close stdin */
-			dup(pfds[0]);  /* make stdin as pipe output*/
-			close(pfds[1]); /* don't need this */
-			wait(0);
-			execvp(tokens[pos+1], tokens+pos+1);
-		}
-	}
-	else {
+	int pfds[2];
+	pipe(pfds);
+	pid_t pid = fork();
+	if (pid == 0) { /* child */
+		close(1); /* close stdout */
+		dup(pfds[1]);   /* make stdout as pipe input*/
+		close(pfds[0]); /* don't need this */
+		tokens[pos] = NULL;
+		execvp(tokens[0], tokens);
+	} 
+	else { /* The parent process */ 
+		close(0); /* close stdin */
+		dup(pfds[0]);  /* make stdin as pipe output*/
+		close(pfds[1]); /* don't need this */
 		wait(0);
+		execvp(tokens[pos+1], tokens+pos+1);
 	}
 }
