@@ -10,3 +10,4 @@
 - [x] simple version of pipe function (lab)
 - [ ] refactor code
 - [x] recursive version of pipe function
+- [ ] I/O redirection

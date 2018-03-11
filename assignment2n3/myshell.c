@@ -21,6 +21,7 @@ void run_program(const char *filename, char *argv[], char *const envp[], int las
 void my_cd(char *path);
 void my_pipe(char *tokens[MAX_CMDLINE_LEN], int pos);
 int find_pipe(char *tokens[MAX_CMDLINE_LEN], int last);
+void my_exec(char *tokens[MAX_CMDLINE_LEN]); // Handle I/O redirection
 //void child_command();
 
 /* The main function implementation */
