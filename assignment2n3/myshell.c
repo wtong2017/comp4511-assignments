@@ -161,12 +161,14 @@ void run_program(const char *filename, char *argv[], char *const envp[], int las
 			char path_buffer[512];
 			strcpy(path_buffer, "./"); // current directory
 			strcat(path_buffer, filename);
+			// Find in current directory first
 			if (-1 == (execve(path_buffer, argv, NULL))) {
 				for (i = 0; i < path_num; i++) {
 					strcpy(path_buffer, paths[i]);
 					strcat(path_buffer, "/");
 					strcat(path_buffer, filename);
 					//printf("%s\n", path_buffer);
+					// Find in PATH next
 					if (-1 == (execve(path_buffer, argv, NULL)) && i == path_num-1) {
 						printf("%s: Command not found.\n", filename);
 						//perror("execve");  
@@ -259,7 +261,6 @@ int find_pipe(char *tokens[MAX_CMDLINE_LEN], int last) {
 	return -1;
 }
 
-// Simple version
 void my_pipe(char *tokens[MAX_CMDLINE_LEN], int pos) {
 	/* Base case */
 	if (pos == -1) {
