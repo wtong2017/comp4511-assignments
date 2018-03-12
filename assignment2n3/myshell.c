@@ -6,6 +6,8 @@
 #include <sys/types.h>
 
 #include <signal.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #define MAX_CMDLINE_LEN 256
 #define MAX_PROGRAM_PATH 128
@@ -156,27 +158,28 @@ void run_program(const char *filename, char *argv[], char *const envp[], int las
 				sleep(atoi(argv[1]));
 				exit(0);
 			}
-			char *paths[MAX_PROGRAM_PATH];
-			int path_num = get_program_path(paths);
-			int i;
-			char path_buffer[512];
-			strcpy(path_buffer, "./"); // current directory
-			strcat(path_buffer, filename);
+			my_exec(argv);
+			//char *paths[MAX_PROGRAM_PATH];
+			//int path_num = get_program_path(paths);
+			//int i;
+			//char path_buffer[512];
+			//strcpy(path_buffer, "./"); // current directory
+			//strcat(path_buffer, filename);
 			// Find in current directory first
-			if (-1 == (execve(path_buffer, argv, NULL))) {
-				for (i = 0; i < path_num; i++) {
-					strcpy(path_buffer, paths[i]);
-					strcat(path_buffer, "/");
-					strcat(path_buffer, filename);
-					//printf("%s\n", path_buffer);
+			//if (-1 == (execve(path_buffer, argv, NULL))) {
+			//	for (i = 0; i < path_num; i++) {
+			//		strcpy(path_buffer, paths[i]);
+			//		strcat(path_buffer, "/");
+			//		strcat(path_buffer, filename);
+			//		//printf("%s\n", path_buffer);
 					// Find in PATH next
-					if (-1 == (execve(path_buffer, argv, NULL)) && i == path_num-1) {
-						printf("%s: Command not found.\n", filename);
+			//		if (-1 == (execve(path_buffer, argv, NULL)) && i == path_num-1) {
+			//			printf("%s: Command not found.\n", filename);
 						//perror("execve");  
-        					exit(1);
-					}
-				}
-    			}
+        		//			exit(1);
+			//		}
+			//	}
+    			//}
 		}
 		exit(0);
 	}
@@ -265,7 +268,7 @@ int find_pipe(char *tokens[MAX_CMDLINE_LEN], int last) {
 void my_pipe(char *tokens[MAX_CMDLINE_LEN], int pos) {
 	/* Base case */
 	if (pos == -1) {
-                execvp(tokens[0], tokens);
+		my_exec(tokens);
 	}
 
 	int pfds[2];
@@ -283,6 +286,33 @@ void my_pipe(char *tokens[MAX_CMDLINE_LEN], int pos) {
 		dup(pfds[0]);  /* make stdin as pipe output*/
 		close(pfds[1]); /* don't need this */
 		wait(0);
-		execvp(tokens[pos+1], tokens+pos+1);
+		my_exec(tokens+pos+1);
 	}
 }
+
+void my_exec(char *tokens[MAX_CMDLINE_LEN]) {
+	//printf("In my_exec\n");
+	int i;
+	for (i = 0; tokens[i] != NULL; i++) {
+		//printf("%s\n", tokens[i]);
+		if (strncmp(tokens[i], "<", 1) == 0) {
+			//printf("Input redirection to %s\n", tokens[i+1]);
+			int readfd = open(tokens[i+1], O_RDONLY | O_CREAT, 0664);
+			close(0);
+			dup2(readfd, 0);
+			close(readfd);
+			tokens[i] = NULL;
+		}
+		else if (strncmp(tokens[i], ">", 1) == 0) {
+			//printf("Output redirection to %s\n", tokens[i+1]);
+			int writefd = open(tokens[i+1], O_WRONLY | O_CREAT, 0664);
+			close(1);
+			close(2); // close stderr
+			dup2(writefd, 1);
+			dup2(writefd, 2);
+			close(writefd);
+			tokens[i] = NULL;
+		}
+	}
+	execvp(tokens[0], tokens);
+} 

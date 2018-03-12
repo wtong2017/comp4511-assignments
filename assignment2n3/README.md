@@ -8,6 +8,6 @@
 - [x] feature 3: background process support
 ## Assignment 3
 - [x] simple version of pipe function (lab)
-- [ ] refactor code
+- [x] refactor code
 - [x] recursive version of pipe function
-- [ ] I/O redirection
+- [x] I/O redirection
