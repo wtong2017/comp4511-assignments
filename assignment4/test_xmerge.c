@@ -3,7 +3,7 @@
 #include <sys/types.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/fcntl.h>
+#include <fcntl.h>
 	
 #define SYS_XMERGE 355
 #define MAXLEN 100
@@ -25,24 +25,27 @@ int main(int argc, char *argv[]) {
 	num_files = argc - 3;
 	mode = 0664; // Default mode
 	
+	// Check flags
+	// Assume only one flag can be used
+	oflags = 0;
 	if (strncmp(argv[1], "-a", 2) == 0) {
-		oflags = O_APPEND;
+		oflags |= O_APPEND;
 	}
 	else if (strncmp(argv[1], "-c", 2) == 0) {
-		oflags = O_CREAT;
+		oflags |= O_CREAT;
 	}
 	else if (strncmp(argv[1], "-t", 2) == 0) {
-		oflags = O_TRUNC;
+		oflags |= O_TRUNC;
 	}
 	else if (strncmp(argv[1], "-e", 2) == 0) {
-		oflags = O_EXCL;
+		oflags |= O_EXCL;
 	}
 	else if (strncmp(argv[1], "-m", 2) == 0) {
 		if (argc < 3) {
 			printf("Not enough arguments\n");
 			return 0;
 		}
-		// Todo: ask peter what is -m
+		mode = strtol(argv[2], NULL, 8);
 		num_files -= 1;
 	}
 	else if (strncmp(argv[1], "-h", 2) == 0) {
@@ -62,15 +65,15 @@ int main(int argc, char *argv[]) {
 	infiles = (char **)malloc(num_files * sizeof(char *));
 	for (i = 0; i < num_files; i++) {
 		infiles[i] = (char *)malloc(MAXLEN * sizeof(char));
-		strncpy(infiles[i], argv[3+i], MAXLEN-1);
+		strncpy(infiles[i], argv[3+i], MAXLEN);
 	}
 	outfile = (char *)malloc(MAXLEN * sizeof(char));
-	strncpy(outfile, argv[2], MAXLEN-1);
-	oflags = 1;
+	strncpy(outfile, argv[2], MAXLEN);
 	/* printf("Outfile: %s\n", outfile);
 	for (i = 0; i < num_files; i++)
 		printf("%i, %s\n", i, infiles[i]); */			
 
+	// Pack the arguments
 	v[0] = outfile;
 	v[1] = infiles;
 	v[2] = &num_files;
@@ -79,7 +82,6 @@ int main(int argc, char *argv[]) {
 	v[5] = &ofile_count;
 	pt = v;
 	ret = syscall(SYS_XMERGE, pt, sizeof(v)/sizeof(v[0]));
-	printf("The return value is %d\n", ret);
 	if (ret < 0) {
 		perror("SYS_XMERGE");
 		return 0;

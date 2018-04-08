@@ -12,5 +12,5 @@
 - [x] Handle -c
 - [x] Handle -t
 - [x] Handle -e
-- [ ] Handle -m
+- [x] Handle -m
 - [x] Handle -h
