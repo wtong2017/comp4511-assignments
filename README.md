@@ -3,6 +3,6 @@
 - [x] assignment 1
 - [x] assignment 2
 - [x] assignment 3
-- [ ] assignment 4
-- [ ] assignment 5
+- [x] assignment 4
+- [x] assignment 5
 - [ ] assignment 6
